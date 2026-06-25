@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Evaluation Notification Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f5f7;
+      margin: 0;
+      padding: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #eaeaea;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      background-color: #ff4d4f;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .btn {
+      background-color: #1890ff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:hover { background-color: #40a9ff; }
+    .notification-item {
+      padding: 16px;
+      border: 1px solid #eaeaea;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      background-color: #fafafa;
+      position: relative;
+    }
+    .notification-item.unread {
+      border-left: 4px solid #1890ff;
+      background-color: #f0f7ff;
+    }
+    .notification-title { font-weight: bold; margin-bottom: 4px; }
+    .notification-body { font-size: 14px; color: #555; }
+    .read-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #e8e8e8;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .read-btn:hover { background: #d9d9d9; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h2>Notifications <span id="unread-count" class="badge">0</span></h2>
+    <button class="btn" onclick="markAllAsRead()">Mark All Read</button>
+  </div>
+  <div id="notifications-list">Loading notifications...</div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:3000/api/v1/notifications';
+
+  async function fetchUnreadCount() {
+    try {
+      const res = await fetch(`${API_BASE}/unread-count`);
+      const resData = await res.json();
+      if (resData.success) {
+        document.getElementById('unread-count').innerText = resData.data.unread_count;
+      }
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
+    }
+  }
+
+  async function fetchNotifications() {
+    try {
+      const res = await fetch(API_BASE);
+      const resData = await res.json();
+      const listContainer = document.getElementById('notifications-list');
+      
+      if (resData.success && resData.data.notifications.length > 0) {
+        listContainer.innerHTML = '';
+        resData.data.notifications.forEach(notif => {
+          const item = document.createElement('div');
+          item.className = `notification-item ${notif.is_read ? '' : 'unread'}`;
+          
+          item.innerHTML = `
+            <div class="notification-title">${notif.title}</div>
+            <div class="notification-body">${notif.body}</div>
+            ${!notif.is_read ? `<button class="read-btn" onclick="markSingleAsRead('${notif.id}')">Read</button>` : ''}
+          `;
+          listContainer.appendChild(item);
+        });
+      } else {
+        listContainer.innerHTML = '<p>No notifications found.</p>';
+      }
+    } catch (err) {
+      listContainer.innerHTML = '<p style="color:red;">Error loading notifications.</p>';
+    }
+  }
+
+  async function markSingleAsRead(id) {
+    try {
+      const res = await fetch(`${API_BASE}/${id}/read`, { method: 'PATCH' });
+      const data = await res.json();
+      if (data.success) {
+        refreshDashboard();
+      }
+    } catch (err) {
+      console.error('Error updating status:', err);
+    }
+  }
+
+  async function markAllAsRead() {
+    try {
+      const res = await fetch(`${API_BASE}/read-all`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        refreshDashboard();
+      }
+    } catch (err) {
+      console.error('Error batch updating status:', err);
+    }
+  }
+
+  function refreshDashboard() {
+    fetchUnreadCount();
+    fetchNotifications();
+  }
+
+  // Initial Boot Load
+  refreshDashboard();
+</script>
+
+</body>

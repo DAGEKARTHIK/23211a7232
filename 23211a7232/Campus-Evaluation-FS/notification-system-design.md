@@ -1,0 +1,2 @@
+# Notification System Design
+create restapi design constact and structure to dispaly notifications to the users when they are logged in ; the core points are REST API endpoints with their json requests response header ; subimt your response as a mark down file called notification-system-design; and logging middleware should be created
